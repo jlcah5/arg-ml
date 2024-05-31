@@ -1,0 +1,26 @@
+description: Distribution of published demographic models
+time_units: generations
+generation_time: 1
+demes:
+- name: ANC
+  epochs:
+  - {end_time: 3458, start_size: 10591}
+- name: OUT
+  ancestors: [ANC]
+  epochs:
+  - {end_time: 0, start_size: 16336}
+- name: SRC
+  start_time: 22524
+  ancestors: [ANC]
+  epochs:
+  - {end_time: 0, start_size: 8495}
+- name: TAR
+  start_time: 2806
+  ancestors: [OUT]
+  epochs:
+  - {end_time: 0, start_size: 3548}
+pulses:
+- sources: [SRC]
+  dest: TAR
+  time: 1660
+  proportions: [0.02]

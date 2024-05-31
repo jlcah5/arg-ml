@@ -1,0 +1,37 @@
+time_units: generations
+demes:
+- name: AFR
+  epochs:
+  - {end_time: 22652.0, start_size: 18296}
+  - {end_time: 2484.1724137931033, start_size: 23275.0}
+  - {end_time: 0, start_size: 27122.0}
+- name: DEN
+  start_time: 22652.0
+  ancestors: [AFR]
+  epochs:
+  - {end_time: 0, start_size: 7419}
+- name: EUR
+  start_time: 2484.1724137931033
+  ancestors: [AFR]
+  epochs:
+  - {end_time: 2384.1724137931033, start_size: 781}
+  - {end_time: 1968.9655172413793, start_size: 7264.0}
+  - {end_time: 1868.9655172413793, start_size: 1305.0}
+  - {end_time: 1448.1724137931035, start_size: 7264.0}
+  - {end_time: 0, start_size: 3899.0}
+- name: PNG
+  start_time: 1998.0689655172414
+  ancestors: [EUR]
+  epochs:
+  - {end_time: 1898.0689655172414, start_size: 136}
+  - {end_time: 0, start_size: 4947.0}
+- name: ASIA
+  start_time: 1448.1724137931035
+  ancestors: [EUR]
+  epochs:
+  - {end_time: 0, start_size: 5054}
+pulses:
+- sources: [DEN]
+  dest: PNG
+  time: 1515.344827586207
+  proportions: [0.25]

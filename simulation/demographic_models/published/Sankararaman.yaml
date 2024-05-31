@@ -1,0 +1,26 @@
+description: Model from Sankararam et. al. 2014 Nature, found through Durvsaula 2019
+  Plos Genetics
+time_units: generations
+generation_time: 1
+demes:
+- name: ANC
+  epochs:
+  - {end_time: 12000, start_size: 10000}
+- name: YRI
+  ancestors: [ANC]
+  epochs:
+  - {end_time: 0, start_size: 10000}
+- name: NEA
+  ancestors: [ANC]
+  epochs:
+  - {end_time: 0, start_size: 10000.0}
+- name: CEU
+  start_time: 2500
+  ancestors: [YRI]
+  epochs:
+  - {end_time: 0, start_size: 10000.0}
+pulses:
+- sources: [NEA]
+  dest: CEU
+  time: 2000
+  proportions: [0.02]
