@@ -51,7 +51,7 @@ else
     tabix -h PATH_TO_DATA/hgdp1kgp_chr${chr}.filtered.SNV_INDEL.phased.shapeit5.vcf.gz chr$chr:$start-$end | bgzip > hgdp1kgp_chr${chr}.filtered.SNV_INDEL.phased.shapeit5.$start.$end.vcf.gz
 
     # for every window, extract the population
-    for pop_file in ~/argml/gnomad/gnomad_subpops/*
+    for pop_file in gnomad_subpops/*
     do 
     
     pop=${pop_file%.txt}
