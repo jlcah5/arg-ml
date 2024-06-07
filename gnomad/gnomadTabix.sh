@@ -7,6 +7,7 @@
 module load htslib
 module load bcftools
 """
+Description: chunk 1KG data, split into populations, infer the ARG, and calculate eGRM on sliding windows (window size set to 50kb, step size to 10kb)
 USAGE: sh gnomadTabix.sh Chr Base Max
     Chr: chromosome
     Base: starting window of the chromosome
@@ -39,7 +40,7 @@ do
 let start=$base+4000000*$i
 let end=$start+5000000
 
-ret=$(tabix /project/jitang_1167/data/1KG+HGDP_gnomADr3.1.2_phased/phased_haplotypes_v2_vcf/hgdp1kgp_chr$chr.filtered.SNV_INDEL.phased.shapeit5.vcf.gz chr$chr:$start-$end | wc -l);
+ret=$(tabix PATH_TO_DATA/hgdp1kgp_chr$chr.filtered.SNV_INDEL.phased.shapeit5.vcf.gz chr$chr:$start-$end | wc -l);
 
 if [ $ret -eq $zero ]
 then
@@ -66,11 +67,17 @@ else
     Relate --mode All -m 1.25e-8 -N 20000 --haps ${prefix}.clean.haps --sample ${prefix}.sample --map ~/genetic_map.txt --seed 1 -o ${prefix}
     # convert to tree sequence
     RelateFileFormats --mode ConvertToTreeSequence -i ${prefix} -o ${prefix}.infer
-    # calculate GRM
-    trees2egrm --output-format numpy ${prefix}.infer.trees --c --haploid --output PATH_TO_OUTPUT/$prefix
-    # clean  
+    
+    # calculate GRM on sliding window
+    for win_start in $( eval echo {${start}..${end}..10000} )
+    do
+    let win_end=$win_start+50000
+    trees2egrm --output-format numpy ${prefix}.infer.trees --c --haploid --output PATH_TO_OUTPUT/$prefix_${win_start}_${win_end} --left ${win_start} --right ${win_end}
+     
+    
+    done
+    # clean 
     rm -rf ${prefix}.*
-
     done
 
 fi
