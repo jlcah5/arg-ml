@@ -50,7 +50,7 @@ RelateFileFormats --mode ConvertFromVcf --haps ${prefix}.haps --sample ${prefix}
 RelateFileFormats --mode RemoveNonBiallelicSNPs --haps ${prefix}.haps -o ${prefix}.clean
 
 # infer
-Relate --mode All -m 1.25e-8 -N 20000 --haps ${prefix}.clean.haps --sample ${prefix}.sample --map ~/genetic_map.txt --seed 1 -o ${prefix}
+Relate --mode All -m 1.25e-8 -N 20000 --haps ${prefix}.clean.haps --sample ${prefix}.sample --map genetic_map.txt --seed 1 -o ${prefix}
 
 # convert to tree sequence
 RelateFileFormats --mode ConvertToTreeSequence -i ${prefix} -o ${prefix}.infer
