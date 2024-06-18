@@ -12,6 +12,7 @@ TODO:
 """
 
 # python imports
+import numpy as np
 from subprocess import Popen, PIPE
 import sys
 
@@ -30,6 +31,8 @@ POP = "ACB"
 IN_FOLDER = sys.argv[1]
 BED_FILE = sys.argv[2]
 OUT_FOLDER = sys.argv[3] + "/" + POP
+mkdir = Popen("mkdir " + OUT_FOLDER, shell=True, stdout=PIPE)
+mkdir.communicate()
 
 WINDOW = 50000 # 50kb
 STEP   = 10000 # 10kb
@@ -40,12 +43,11 @@ MIN_SNPS = 50 # min SNPs per 50kb region
 ################################################################################
 
 def read_chrom_lengths():
-    arr = np.loadtxt("hg38_chrom_lengths.txt", dtype='int', delimiter="\t", skip_rows=1)
+    arr = np.loadtxt("hg38_chrom_lengths.tsv", dtype='int', delimiter="\t", skiprows=1)
     chrom_dict = {}
     for chr in range(1,23):
-        assert arr[chr-1][0] = chr
+        assert arr[chr-1][0] == chr
         chrom_dict[str(chr)] = arr[chr-1][1]
-    print(chrom_dict)
     return chrom_dict
 
 ################################################################################
@@ -55,7 +57,7 @@ def read_chrom_lengths():
 def main():
 
     # length of chrom
-    chrom_dict = read_chrom_lengths():
+    chrom_dict = read_chrom_lengths()
     chrom_length = chrom_dict[CHR]
 
     # accessibility mask
@@ -65,7 +67,9 @@ def main():
     start = 0
     end = WINDOW
     kept = 0
+    total = 0
     while end <= chrom_length:
+        total += 1
 
         pop_file = "gnomad_subpops/" + POP.lower() + ".txt"
         cmd = "bcftools view --no-header -r chr" + CHR + ":" + str(start) + "-" + str(end) + " " + IN_FOLDER + "/" + POP + "/" + POP + "_chr" + CHR + ".vcf.gz | wc -l"
@@ -78,8 +82,9 @@ def main():
         
         # if we have enough SNPs and inside accessibility mask
         if num_snps >= MIN_SNPS and region.inside_mask(mask_dict):
-            print("num SNPs", num_snps)
             kept += 1
+
+            print("num SNPs", num_snps)
             prefix = POP + "_chr" + CHR + "_" + str(start) + "_" + str(end)
 
             # extract SNPs
@@ -109,15 +114,13 @@ def main():
             
             # clean 
             clean = "rm -rf " + prefix + "*"
-            print(clean)
             process = Popen(clean, shell=True, stdout=PIPE)
             process.communicate() # wait to finish
-            input('enter')
 
         start += STEP
         end += STEP
 
-    print("frac kept", kept/1000)
+    print("frac kept", kept/total)
 
 # TODO: tarball of PATH_TO_OUTPUT/*.npy files
 
