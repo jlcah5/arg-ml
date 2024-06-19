@@ -49,7 +49,7 @@ def main():
     for pop_file in pop_file_lst:
         
         pop = pop_file[:3].upper()
-        if pop != "YRI":
+        if pop != "YRI" and pop != "hea": # outgroup or header.txt
             old_pop_filename = "gnomad_subpops/" + pop_file
             new_pop_filename = "gnomad_subpops/" + pop_file[:-4] + "_yri.txt"
             print(old_pop_filename, new_pop_filename)
@@ -71,7 +71,6 @@ def main():
         
         new_pop_file.write(yri_str)
         new_pop_file.close()
-        input('enter')
 
 
 if __name__ == "__main__":
