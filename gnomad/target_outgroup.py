@@ -69,8 +69,8 @@ def main():
             if count != N:
                 print("ERROR: not enough individuals in " + pop)
         
-        new_pop_file.write(yri_str)
-        new_pop_file.close()
+            new_pop_file.write(yri_str)
+            new_pop_file.close()
 
 
 if __name__ == "__main__":
