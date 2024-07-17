@@ -2,13 +2,9 @@
 Description: read combined hgdp+1kgp data, split into populations, infer the
     ARG, and calculate eGRM on sliding windows (window size set to 50kb, step
     size to 10kb)
-Usage: python3 gnomad_relate.py IN_FOLDER OUT_FOLDER
+Usage: python3 gnomad_relate.py IN_FOLDER BED_FILE RECO_FOLDER OUT_FOLDER
 Author: Jordan Cahoon, Sara Mathieson
-Date: 6/12/24
-
-TODO:
-- adjust relate simulation
-- create tarball for input into model
+Date: 7/17/24
 """
 
 # python imports
@@ -30,7 +26,8 @@ POP = "ACB"
 
 IN_FOLDER = sys.argv[1]
 BED_FILE = sys.argv[2]
-OUT_FOLDER = sys.argv[3] + "/" + POP
+RECO_FOLDER = sys.argv[3] + "/" + POP
+OUT_FOLDER = sys.argv[4] + "/" + POP
 mkdir = Popen("mkdir " + OUT_FOLDER, shell=True, stdout=PIPE)
 mkdir.communicate()
 
@@ -71,7 +68,6 @@ def main():
     while end <= chrom_length:
         total += 1
 
-        pop_file = "gnomad_subpops/" + POP.lower() + ".txt"
         cmd = "bcftools view --no-header -r chr" + CHR + ":" + str(start) + "-" + str(end) + " " + IN_FOLDER + "/" + POP + "/" + POP + "_chr" + CHR + ".vcf.gz | wc -l"
         process = Popen(cmd, shell=True, stdout=PIPE)
         output, err = process.communicate()
@@ -97,8 +93,10 @@ def main():
             process = Popen(relate, shell=True, stdout=PIPE)
             process.communicate() # wait to finish
 
-            # infer tree (biallelic snps retained with bcftools))
-            relate = "Relate --mode All -m 1.25e-8 -N 20000 --haps " + prefix + ".haps --sample " + prefix + ".sample --map ../simulation/genetic_map.txt --seed 1 -o " + prefix
+            # infer tree (biallelic snps retained with bcftools)
+            # use population specific genetic map from Spence and Song
+            reco_file = RECO_FOLDER + "/" + POP + "_recombination_map_hapmap_format_hg38_chr_" + CHR + ".txt"
+            relate = "Relate --mode All -m 1.25e-8 -N 20000 --haps " + prefix + ".haps --sample " + prefix + ".sample --map " + reco_file + " --seed 1 -o " + prefix
             process = Popen(relate, shell=True, stdout=PIPE)
             process.communicate() # wait to finish
             
@@ -108,7 +106,7 @@ def main():
             process.communicate() # wait to finish
 
             # calculate GRM on entire region
-            egrm = "trees2egrm --output-format numpy " + prefix + ".infer.trees --c --haploid --output " + OUT_FOLDER + "/" + prefix #" --left ${win_start} --right ${win_end}
+            egrm = "trees2egrm --output-format numpy " + prefix + ".infer.trees --c --haploid --output " + OUT_FOLDER + "/" + prefix
             process = Popen(egrm, shell=True, stdout=PIPE)
             process.communicate() # wait to finish
             
@@ -121,8 +119,6 @@ def main():
         end += STEP
 
     print("frac kept", kept/total)
-
-# TODO: tarball of PATH_TO_OUTPUT/*.npy files
 
 if __name__ == "__main__":
     main()

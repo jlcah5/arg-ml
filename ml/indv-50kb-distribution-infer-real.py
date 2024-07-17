@@ -22,6 +22,7 @@ from models.transformer import Transformer
 
 # globals
 NUM_HAPS = 112 # in target pop (224 in target + outgroup)
+THRESH = 0.95  # threshold for high prob introgression
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -118,10 +119,13 @@ with torch.no_grad():
 #y_test = np.concatenate(test_y_list, axis=0)
 y_pred_t = y_pred.flatten().numpy()
 y_out_t = y_out.flatten().numpy()
-#print("predictions", y_pred_t.shape)
+num_pred = y_out_t.shape[0]
+num_high = (y_out_t >= THRESH).sum()
+print("frac high", num_high, "/", num_pred, num_high/num_pred)
 sns.displot(y_out_t)#, x="prob introgression")
 plt.xlabel("prob introgression")
-plt.savefig(out_file)
+plt.title(model_name + ", " + model_type + ", " + real_pop[-4:-1])
+plt.savefig(out_file, bbox_inches="tight")
 
 #y_test_t = y_test.flatten()
 #print(f'Iter: {seed}----------------------------------------------')
