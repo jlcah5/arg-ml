@@ -31,7 +31,7 @@ print(device)
 model_name = sys.argv[1] # type of nn model: transformer OR cnn
 model_type = sys.argv[2] # {growth, noGrowth}
 real_pop = sys.argv[3]   # path to real test data folder
-out_file = sys.argv[4]   # path to pdf (distribution of real data predictions)
+out_prefix = sys.argv[4]   # path to output prefix (predictions as txt/pdf)
 
 if model_type == "growth":
     # initialize parameters for loss function
@@ -75,11 +75,22 @@ class RealDataset(Dataset):
         # sort by length of filename, then by alpha/numeric
         self.file_lst.sort(key = lambda x: (len(x), x))
 
+        self.file_lst = self.file_lst[:10] # try small subset
+
     def __len__(self):
         return len(self.file_lst)
 
     def __getitem__(self, idx):
         return np.load(self.file_lst[idx])
+
+def parse_region(region_filename):
+    # i.e. ends with GBR_chr1_2960000_3010000.npy
+    tokens = region_filename.split("/")[-1].split("_")
+    chrom = tokens[1][3:]
+    start = tokens[2]
+    end = tokens[3].split(".")[0]
+    print(chrom, start, end)
+    return chrom, start, end
 
 dataset = RealDataset(real_pop)
 testloader = torch.utils.data.DataLoader(dataset, batch_size=128)
@@ -125,7 +136,23 @@ print("frac high", num_high, "/", num_pred, num_high/num_pred)
 sns.displot(y_out_t)#, x="prob introgression")
 plt.xlabel("prob introgression")
 plt.title(model_name + ", " + model_type + ", " + real_pop[-4:-1])
-plt.savefig(out_file, bbox_inches="tight")
+plt.savefig(out_prefix + ".pdf", bbox_inches="tight")
+
+# save to a file
+pred_file = open(out_prefix + ".txt", 'w')
+file_lst = dataset.file_lst
+assert len(file_lst)*NUM_HAPS == len(y_out_t)
+
+i = 0
+for f in file_lst:
+    chrom, start, end = parse_region(f)
+    for hap in range(NUM_HAPS):
+        pred = y_out_t[i]
+        line = "\t".join([chrom, start, end, str(pred), str(hap)])
+        pred_file.write(line + "\n")
+        i += 1
+
+pred_file.close()
 
 #y_test_t = y_test.flatten()
 #print(f'Iter: {seed}----------------------------------------------')
