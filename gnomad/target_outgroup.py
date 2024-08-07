@@ -1,5 +1,5 @@
 """
-Description: write new samples files with both target and outgroup
+Description: write new samples files with both target (1st) and outgroup (2nd)
 Usage: python3 target_outgroup.py
 Author: Sara Mathieson
 Date: 6/19/24
@@ -69,7 +69,7 @@ def main():
             if count != N:
                 print("ERROR: not enough individuals in " + pop)
         
-            new_pop_file.write(yri_str)
+            new_pop_file.write(yri_str) # YRI is second
             new_pop_file.close()
 
 

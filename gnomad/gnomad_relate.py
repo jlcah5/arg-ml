@@ -13,8 +13,8 @@ from subprocess import Popen, PIPE
 import sys
 
 # our imports
-sys.path.insert(1, "../../pg-gan")
-import real_data_random
+#sys.path.insert(1, "../../pg-gan")
+import mask
 
 ################################################################################
 # GLOBALS
@@ -54,7 +54,7 @@ def main():
     chrom_dict = read_chrom_lengths()
 
     # accessibility mask
-    mask_dict = real_data_random.read_mask(BED_FILE)
+    mask_dict = mask.read_mask(BED_FILE)
     kept = 0
     total = 0
 
@@ -74,7 +74,7 @@ def main():
             num_snps = int(output.decode("utf-8"))
 
             # create region to determine accessibility
-            region = real_data_random.Region(CHR, start, end)
+            region = mask.Region(CHR, start, end)
             
             # if we have enough SNPs and inside accessibility mask
             if num_snps >= MIN_SNPS and region.inside_mask(mask_dict):
