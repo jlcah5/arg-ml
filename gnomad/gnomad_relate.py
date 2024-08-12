@@ -25,6 +25,9 @@ POP = IN_FOLDER[-3:]
 BED_FILE = sys.argv[2]
 RECO_FOLDER = sys.argv[3] + "/" + POP
 OUT_FOLDER = sys.argv[4] + "/" + POP
+START_CHR = 1
+if len(sys.argv) == 6:
+    START_CHR = int(sys.argv[5]) # start part way through
 mkdir = Popen("mkdir " + OUT_FOLDER, shell=True, stdout=PIPE)
 mkdir.communicate()
 
@@ -58,7 +61,8 @@ def main():
     kept = 0
     total = 0
 
-    for CHR in chrom_dict:
+    for chr_int in range(START_CHR,23):
+        CHR = str(chr_int)
         chrom_length = chrom_dict[CHR]
 
         # go through each region

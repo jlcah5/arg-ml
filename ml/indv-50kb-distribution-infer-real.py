@@ -22,9 +22,10 @@ from models.transformer import Transformer
 
 # globals
 NUM_HAPS = 112 # in target pop (224 in target + outgroup)
-THRESH = 0.95  # threshold for high prob introgression
+THRESH = 0.95  # threshold for high prob introgression (note not our final threshold)
 CHR = None # set to None to do whole genome, otherwise str
 
+torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
@@ -92,6 +93,7 @@ def parse_region(region_filename):
 
 def pred_one_chrom(chrom):
     print("starting chr", chrom, "writing to", out_prefix)
+    plt.clf()
     dataset = RealDataset(real_pop, chrom)
     testloader = torch.utils.data.DataLoader(dataset, batch_size=128)
 
