@@ -71,7 +71,8 @@ class RealDataset(Dataset):
         unfiltered = os.listdir(folder)
         self.file_lst = []
         for f in unfiltered:
-            if f[-3:] == "npy" and f[-6:-4] != "mu" and "chr" + chrom in f:
+            tokens = f.split("_")
+            if f[-3:] == "npy" and f[-6:-4] != "mu" and "chr" + chrom in tokens:
                 self.file_lst.append(os.path.join(folder, f)) 
 
         # sort by length of filename, then by alpha/numeric

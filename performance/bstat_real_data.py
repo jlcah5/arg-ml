@@ -12,10 +12,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-PRED_FOLDER   = sys.argv[1]
+PRED_FOLDER = sys.argv[1]
 BMAP_FOLDER = sys.argv[2]
+OUT_FOLDER  = sys.argv[3]
 
-CHR = 3 # TODO infer
+POP = "GBR"
 REGION_LEN = 10000 # split 50kb inference into 10kb regions
 NUM_HAPS = 112
 
@@ -29,6 +30,9 @@ class Region:
 
     def find_bstat(self, bstat_lst):
         # bstat list should correspond to relevant chromosome
+        if self.chr != bstat_lst[0][3]:
+            print(self.chr, bstat_lst[0][3])
+        assert self.chr == bstat_lst[0][3] # check chrom
         region_start_idx, start_inside = binary_search(self.start, bstat_lst)
         region_end_idx, end_inside = binary_search(self.end, bstat_lst)
 
@@ -89,11 +93,12 @@ def read_bmap(filename):
 
     for line in f:
         tokens = line.split()
+        chrom = int(tokens[0][3:].split("_")[0])
         start = int(tokens[1])
         end = int(tokens[2]) # inclusive
         bstat = float(tokens[3])/1000 # rescale
 
-        bstat_lst.append([start,end,bstat])
+        bstat_lst.append([start,end,bstat,chrom])
 
     f.close()
     return bstat_lst
@@ -159,7 +164,7 @@ def read_pred_file(filename):
 
     return region_dict
 
-def quintiles_one_pop(pred_file, bmap_lst):
+def get_all_preds_bstats(pred_file, bmap_lst):
     # dictionary for all regions
     region_dict = read_pred_file(pred_file)
 
@@ -174,13 +179,17 @@ def quintiles_one_pop(pred_file, bmap_lst):
             all_bstats.append(bstat)
             all_preds.append(avg_pred)
 
+    return all_bstats, all_preds
+
+def quintile_preds(genome_bstats, genome_preds):
     # visualization
-    quintiles = np.quantile(all_bstats, [0.2, 0.4, 0.6, 0.8])
+    assert len(genome_bstats) == len(genome_preds)
+    quintiles = np.quantile(genome_bstats, [0.2, 0.4, 0.6, 0.8])
     print("bstat quintiles", quintiles)
     quintile_preds = [[],[],[],[],[]]
-    for i in range(len(all_preds)):
-        bstat = all_bstats[i]
-        pred = all_preds[i]
+    for i in range(len(genome_preds)):
+        bstat = genome_bstats[i]
+        pred = genome_preds[i]
 
         # 5 cases TODO make cleaner
         if 0 <= bstat < quintiles[0]:
@@ -202,17 +211,27 @@ if __name__ == "__main__":
     #for chr in range(1,23):
     #    bmap2bed(chr)
 
-    # read bstat file
-    bmap_lst = read_bmap(BMAP_FOLDER + "/chr" + str(CHR) + ".bmap_hg38.bed")
+    genome_bstats = []
+    genome_preds = []
+    for CHR in range(1,23):
+        print("starting", CHR)
+        # TODO add CEU etc when finish
 
-    # add each pop
-    pred_file_lst = ["CEU_chr3.txt", "GBR_chr3.txt"] # TODO more general
-    for pred_file in pred_file_lst:
-        binned_preds = quintiles_one_pop(PRED_FOLDER + pred_file, bmap_lst)
-        plt.plot(range(1,6), [np.mean(x) for x in binned_preds], '-o', label=pred_file)
+        # read bstat file
+        bmap_lst = read_bmap(BMAP_FOLDER + "chr" + str(CHR) + ".bmap_hg38.bed")
+
+        # add each chrom
+        pred_file = POP + "_chr" + str(CHR) + ".pred"
+        print(PRED_FOLDER + pred_file)
+        chr_bstats, chr_preds = get_all_preds_bstats(PRED_FOLDER + pred_file, bmap_lst)
+        genome_bstats.extend(chr_bstats)
+        genome_preds.extend(chr_preds)
+
+    binned_preds = quintile_preds(genome_bstats, genome_preds)
+    print(binned_preds)
+    plt.plot(range(1,6), [np.mean(x) for x in binned_preds], '-o', label=POP)
     
     plt.xlabel("B statistic (binned)")
     plt.ylabel("avg pred introgression")
     plt.legend()
-    plt.savefig("bstat_CEU_GBR.pdf") # TODO better output file
-
+    plt.savefig(OUT_FOLDER + "bstat_" + POP + ".pdf")
