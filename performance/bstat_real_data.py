@@ -16,7 +16,7 @@ PRED_FOLDER = sys.argv[1]
 BMAP_FOLDER = sys.argv[2]
 OUT_FOLDER  = sys.argv[3]
 
-POP = "GBR"
+POPS = ["CEU", "GBR"]
 REGION_LEN = 10000 # split 50kb inference into 10kb regions
 NUM_HAPS = 112
 
@@ -70,9 +70,9 @@ class Region:
             # adjut for end exclusive
             for i in range(region_end_idx-region_start_idx):
                 lengths[i] += 1
-            if sum(lengths) != REGION_LEN:
-                print("Not really error but something going on with lengths..")
-                print(sum(lengths))
+            #if sum(lengths) != REGION_LEN:
+            #    print("Not really error but something going on with lengths..")
+            #    print(sum(lengths))
             return np.average(bstats, weights=lengths)
 
     def avg_preds(self):
@@ -211,27 +211,28 @@ if __name__ == "__main__":
     #for chr in range(1,23):
     #    bmap2bed(chr)
 
-    genome_bstats = []
-    genome_preds = []
-    for CHR in range(1,23):
-        print("starting", CHR)
-        # TODO add CEU etc when finish
+    for POP in POPS:
+        print("\nstarting", POP)
 
-        # read bstat file
-        bmap_lst = read_bmap(BMAP_FOLDER + "chr" + str(CHR) + ".bmap_hg38.bed")
+        genome_bstats = []
+        genome_preds = []
+        for CHR in range(1,23):
 
-        # add each chrom
-        pred_file = POP + "_chr" + str(CHR) + ".pred"
-        print(PRED_FOLDER + pred_file)
-        chr_bstats, chr_preds = get_all_preds_bstats(PRED_FOLDER + pred_file, bmap_lst)
-        genome_bstats.extend(chr_bstats)
-        genome_preds.extend(chr_preds)
+            # read bstat file
+            bmap_lst = read_bmap(BMAP_FOLDER + "chr" + str(CHR) + ".bmap_hg38.bed")
 
-    binned_preds = quintile_preds(genome_bstats, genome_preds)
-    print(binned_preds)
-    plt.plot(range(1,6), [np.mean(x) for x in binned_preds], '-o', label=POP)
+            # add each chrom
+            pred_file = POP + "_chr" + str(CHR) + ".pred"
+            print(PRED_FOLDER + POP + "/" + pred_file)
+            chr_bstats, chr_preds = get_all_preds_bstats(PRED_FOLDER + POP + "/" + pred_file, bmap_lst)
+            genome_bstats.extend(chr_bstats)
+            genome_preds.extend(chr_preds)
+
+        binned_preds = quintile_preds(genome_bstats, genome_preds)
+        print(binned_preds)
+        plt.plot(range(1,6), [np.mean(x) for x in binned_preds], '-o', label=POP)
     
     plt.xlabel("B statistic (binned)")
     plt.ylabel("avg pred introgression")
     plt.legend()
-    plt.savefig(OUT_FOLDER + "bstat_" + POP + ".pdf")
+    plt.savefig(OUT_FOLDER + "bstat_" + "_".join(POPS) + ".pdf")
