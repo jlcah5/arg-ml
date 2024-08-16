@@ -18,11 +18,19 @@ ID_PATH = sys.argv[3] #"/homes/smathieson/GIT/arg-ml/gnomad/gnomad_subpops/"
 COMPARE_PATH = sys.argv[4] #/homes/smathieson/Documents/arg-ml/sriram/
 POP = sys.argv[5]
 
-THRESH = 0.995
+def read_chrom_lengths():
+    arr = np.loadtxt("../gnomad/hg38_chrom_lengths.tsv", dtype='int', delimiter="\t", skiprows=1)
+    chrom_dict = {}
+    for chr in range(1,23):
+        assert arr[chr-1][0] == chr
+        chrom_dict[str(chr)] = arr[chr-1][1]
+    return chrom_dict
+
+CHROM_DICT = read_chrom_lengths()
+
+THRESH = 0.996
 RAND_TRIALS = 1000
 SIG_THRESH = 0.05 # significance threshold (p-value)
-
-# TODO merge consecutive high scoring regions for us
 
 # our pred file and ID file
 egrm_pred_path = PRED_PATH + POP + "/"
@@ -38,8 +46,9 @@ sriram_id_filename = COMPARE_PATH + "summaries.release/ids/" + POP + ".ids"
 
 class Individual:
 
-    def __init__(self):
+    def __init__(self, chrom):
         # TODO add population, etc? id number?
+        self.chrom = chrom
         self.region_lst = []
 
     def add_region(self, region):
@@ -51,18 +60,45 @@ class Individual:
             pass
         # TODO are these in chromosomal order?
 
-    def merge_consecutive(self, region_lst):
-        # this just prints for now
-        for i in range(len(region_lst)-1):
-            end = region_lst[i].end
-            start = region_lst[i+1].start
+    def merge_consecutive(self):
+        # only needed for our method
+        merged_idx_lst = []
+        curr_idx = [0]
+        for i in range(len(self.region_lst)-1):
+            end = self.region_lst[i].end
+            start = self.region_lst[i+1].start
             if end == start: # end of region is same as start of next region
-                print(region_lst[i], region_lst[i+1])
+                #print(self.region_lst[i], self.region_lst[i+1])
+                curr_idx.append(i+1)
+            else:
+                merged_idx_lst.append(curr_idx)
+                curr_idx = [i+1]
+        merged_idx_lst.append(curr_idx)
 
+        #print(len(merged_idx_lst), len(self.region_lst))
+        assert merged_idx_lst[-1][-1] + 1 == len(self.region_lst)
+
+        # use index groups to redo regions, averaging preds
+        merged_regions = []
+        for idx_group in merged_idx_lst:
+            if len(idx_group) == 1:
+                merged_regions.append(self.region_lst[idx_group[0]])
+            else:
+                first_idx = idx_group[0]
+                last_idx = idx_group[-1]
+                chr = self.region_lst[first_idx].chrom
+                start = self.region_lst[first_idx].start
+                end = self.region_lst[last_idx].end
+                new_prob = np.mean([region.prob for region in self.region_lst[first_idx:last_idx+1]])
+                new_region = Region(chr, start, end, new_prob)
+                merged_regions.append(new_region)
+
+        self.region_lst = merged_regions
+            
     def __str__(self):
-        self.merge_consecutive(self.region_lst)
+        total = CHROM_DICT[self.chrom]
         base_sum = sum([(x.end - x.start) for x in self.region_lst])
-        return "printing indv: " + str(base_sum)
+        return "indv total, frac: " + str(base_sum) + ", " + str(base_sum/total)
 
 class Region:
 
@@ -171,14 +207,6 @@ def compute_pvalue(value, mean, std):
     pvalue = 1 - norm.cdf(test_stat)
     return pvalue
 
-def read_chrom_lengths():
-    arr = np.loadtxt("../gnomad/hg38_chrom_lengths.tsv", dtype='int', delimiter="\t", skiprows=1)
-    chrom_dict = {}
-    for chr in range(1,23):
-        assert arr[chr-1][0] == chr
-        chrom_dict[str(chr)] = arr[chr-1][1]
-    return chrom_dict
-
 def liftOver(region_lst):
     # convert from hg19 to hg38 using cumbersome procedure..
     #print("num before", len(region_lst))
@@ -213,7 +241,7 @@ def liftOver(region_lst):
     #print("num after", len(new_regions))
     return new_regions
 
-def read_egrm(pred_filename, id_filename):
+def read_egrm(target_chrom, pred_filename, id_filename):
     # first is target, second is outgroup
     id_lst = open(id_filename, 'r').read().split()
     id_lst = id_lst[:len(id_lst)//2] # just take target
@@ -229,20 +257,25 @@ def read_egrm(pred_filename, id_filename):
             hap_id = int(tokens[4])
             id = id_lst[hap_id//2]
             chrom = tokens[0]
+            assert target_chrom == chrom
             start = int(tokens[1])
             end = int(tokens[2])
 
             region = Region(chrom, start, end, prob)
 
             if id not in egrm_results:
-                egrm_results[id] = Individual()
+                egrm_results[id] = Individual(target_chrom)
             
             egrm_results[id].add_region(region)
 
     pred_file.close()
+
+    # merge consecutive regions
+    for id in egrm_results:
+        egrm_results[id].merge_consecutive()
     return egrm_results
 
-def read_sriram(pred_filename, id_filename):
+def read_sriram(target_chrom, pred_filename, id_filename):
     # first get 1000g IDs
     id_file = open(id_filename, 'r')
     id_lst = []
@@ -259,6 +292,7 @@ def read_sriram(pred_filename, id_filename):
             hap_id = int(tokens[1])
             id = id_lst[hap_id]
             chrom = tokens[0]
+            assert target_chrom == chrom
             start = int(tokens[2])
             end = int(tokens[3])
             prob = float(tokens[6])
@@ -266,7 +300,7 @@ def read_sriram(pred_filename, id_filename):
             region = Region(chrom, start, end, prob)
 
             if id not in sriram_results:
-                sriram_results[id] = Individual()
+                sriram_results[id] = Individual(target_chrom)
             
             sriram_results[id].add_region(region)
     
@@ -308,9 +342,10 @@ def overlap_one_region(regionA, regionB):
 
 def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename):
     # dictionaries of individual (key) : regions (value)
-    egrm_results = read_egrm(egrm_pred_filename, egrm_id_filename)
-    sriram_results = read_sriram(sriram_pred_filename, sriram_id_filename)
+    egrm_results = read_egrm(CHR, egrm_pred_filename, egrm_id_filename)
+    sriram_results = read_sriram(CHR, sriram_pred_filename, sriram_id_filename)
 
+    print("\nstarting chrom", chr)
     print("egrm num indvs", len(egrm_results))
     print("sriram num indvs", len(sriram_results))
 
@@ -318,8 +353,7 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
     num_indv = len(overlapping_ids)
     print("num overlapping", num_indv)
 
-    chrom_dict = read_chrom_lengths()
-    chr_len = chrom_dict[CHR]
+    #chr_len = CHROM_DICT[CHR]
 
     # meta stats
     avg_overlap = 0
@@ -330,8 +364,8 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
         #print("\nstarting hap", id)
         indv_egrm = egrm_results[id]
         indv_sriram = sriram_results[id]
-        #print("egrm", indv_egrm)
-        #print("sriram", indv_sriram)
+        print("egrm", indv_egrm)
+        print("sriram", indv_sriram)
         indv_overlap = calc_overlap(indv_egrm.region_lst, indv_sriram.region_lst)
 
         sriram_sum = sum([(x.end - x.start) for x in indv_sriram.region_lst])
@@ -351,7 +385,7 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
         print("pvalue", pvalue)'''
 
     avg_overlap = avg_overlap/num_indv
-    print("\navg indv overlap fraction", avg_overlap)
+    print("avg indv overlap fraction", avg_overlap)
     shuffle_pvalue = random_shuffling_trial(egrm_results, sriram_results, overlapping_ids)
     print("shuffle indv pvalue", shuffle_pvalue)
     #print("frac sig p-values", frac_pvalue_sig/num_indv)
@@ -359,7 +393,6 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
 if __name__ == "__main__":
     for chr_int in range(1,23):
         chr = str(chr_int)
-        print("starting chrom", chr)
         egrm_pred_filename = egrm_pred_path + POP + "_chr" + chr + ".pred"
         sriram_pred_filename = sriram_pred_path + "chr-" + chr + ".thresh-90.length-0.00.haplotypes.gz"
         one_chrom(str(chr_int), egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename)
