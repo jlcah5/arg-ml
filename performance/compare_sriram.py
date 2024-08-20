@@ -15,7 +15,7 @@ import sys
 CHAIN_FILE = sys.argv[1] #"/homes/smathieson/Programs/hg19ToHg38.over.chain.gz"
 PRED_PATH = sys.argv[2] #"/homes/smathieson/Documents/arg-ml/output/"
 ID_PATH = sys.argv[3] #"/homes/smathieson/GIT/arg-ml/gnomad/gnomad_subpops/"
-COMPARE_PATH = sys.argv[4] #/homes/smathieson/Documents/arg-ml/sriram/
+COMPARE_PATH = sys.argv[4] #/homes/smathieson/Documents/arg-ml/
 POP = sys.argv[5]
 
 def read_chrom_lengths():
@@ -28,7 +28,7 @@ def read_chrom_lengths():
 
 CHROM_DICT = read_chrom_lengths()
 
-THRESH = 0.996
+THRESH = 0.996 # TODO increase to match!
 RAND_TRIALS = 1000
 SIG_THRESH = 0.05 # significance threshold (p-value)
 
@@ -36,9 +36,11 @@ SIG_THRESH = 0.05 # significance threshold (p-value)
 egrm_pred_path = PRED_PATH + POP + "/"
 egrm_id_filename = ID_PATH + POP.lower() + "_yri.txt"
 
-# sriram pred file and ID file
-sriram_pred_path = COMPARE_PATH + "summaries.release/" + POP + ".hapmap/summaries/haplotypes/"
-sriram_id_filename = COMPARE_PATH + "summaries.release/ids/" + POP + ".ids"
+# files for other methods
+sriram_pred_path = COMPARE_PATH + "sriram/summaries.release/" + POP + ".hapmap/summaries/haplotypes/"
+sriram_id_filename = COMPARE_PATH + "sriram/summaries.release/ids/" + POP + ".ids"
+ibdmix_pred_filename = COMPARE_PATH + "IBDmix/Neanderthal_sequence_in_1000genome.50kb_noheader_chr_hg38.txt"
+
 
 ################################################################################
 # CLASSES
@@ -94,11 +96,14 @@ class Individual:
                 merged_regions.append(new_region)
 
         self.region_lst = merged_regions
-            
-    def __str__(self):
+
+    def frac_nea(self):
         total = CHROM_DICT[self.chrom]
         base_sum = sum([(x.end - x.start) for x in self.region_lst])
-        return "indv total, frac: " + str(base_sum) + ", " + str(base_sum/total)
+        return base_sum/total
+            
+    def __str__(self):
+        return "indv nea frac: " + str(self.frac_nea())
 
 class Region:
 
@@ -314,6 +319,31 @@ def read_sriram(target_chrom, pred_filename, id_filename):
 
     return sriram_results
 
+def read_ibdmix(target_chrom, pred_filename, target_pop):
+    pred_file = open(pred_filename,'r')
+    ibdmix_results = {}
+
+    for line in pred_file:
+        tokens = line.split()
+        chrom = tokens[0][3:]
+        pop = tokens[6]
+        if chrom == target_chrom and pop == target_pop:
+            
+            id = tokens[8]
+            start = int(tokens[1])
+            end = int(tokens[2])
+            prob = float(tokens[3]) # LOD not prob...
+
+            region = Region(chrom, start, end, prob)
+
+            if id not in ibdmix_results:
+                ibdmix_results[id] = Individual(target_chrom)
+            
+            ibdmix_results[id].add_region(region)
+
+    pred_file.close()
+    return ibdmix_results
+
 def calc_overlap(regions1, regions2):
     # total overlap between all regions of 1 and 2
     total_overlap = 0
@@ -340,16 +370,20 @@ def overlap_one_region(regionA, regionB):
 # MAIN
 ################################################################################
 
-def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename):
-    # dictionaries of individual (key) : regions (value)
-    egrm_results = read_egrm(CHR, egrm_pred_filename, egrm_id_filename)
-    sriram_results = read_sriram(CHR, sriram_pred_filename, sriram_id_filename)
+def avg_frac_nea(results_dict):
+    """average frac nea over all indvs, not just those overlapping with other methods
+    right now this is per chrom"""
+    total = 0
+    for id in results_dict:
+        total += results_dict[id].frac_nea()
+    return total/len(results_dict)
 
-    print("\nstarting chrom", chr)
-    print("egrm num indvs", len(egrm_results))
-    print("sriram num indvs", len(sriram_results))
+def pairwise_overlap(resultsA, resultsB):
+    """from two methods, each with a results dictionary (key: indv ID, value: indv)
+    compute their overlap. Right now this is per chrom"""
 
-    overlapping_ids = set(egrm_results.keys()).intersection(set(sriram_results.keys()))
+    # TODO stopped here (think about how to make more symmetric with denom?)
+    overlapping_ids = set(resultsA.keys()).intersection(set(sriram_results.keys()))
     num_indv = len(overlapping_ids)
     print("num overlapping", num_indv)
 
@@ -362,10 +396,10 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
     # go through each individual where we overlap
     for id in overlapping_ids:
         #print("\nstarting hap", id)
-        indv_egrm = egrm_results[id]
+        indv_egrm = resultsA[id]
         indv_sriram = sriram_results[id]
-        print("egrm", indv_egrm)
-        print("sriram", indv_sriram)
+        #print("egrm", indv_egrm)
+        #print("sriram", indv_sriram)
         indv_overlap = calc_overlap(indv_egrm.region_lst, indv_sriram.region_lst)
 
         sriram_sum = sum([(x.end - x.start) for x in indv_sriram.region_lst])
@@ -386,13 +420,26 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
 
     avg_overlap = avg_overlap/num_indv
     print("avg indv overlap fraction", avg_overlap)
-    shuffle_pvalue = random_shuffling_trial(egrm_results, sriram_results, overlapping_ids)
+    shuffle_pvalue = random_shuffling_trial(resultsA, sriram_results, overlapping_ids)
     print("shuffle indv pvalue", shuffle_pvalue)
     #print("frac sig p-values", frac_pvalue_sig/num_indv)
+
+def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename, ibdmix_pred_filename):
+    # dictionaries of individual (key) : regions (value)
+    egrm_results = read_egrm(CHR, egrm_pred_filename, egrm_id_filename)
+    sriram_results = read_sriram(CHR, sriram_pred_filename, sriram_id_filename)
+    ibdmix_results = read_ibdmix(CHR, ibdmix_pred_filename, POP)
+
+    print("\nstarting chrom", chr)
+    print("egrm num indvs", len(egrm_results), "frac nea", avg_frac_nea(egrm_results))
+    print("sriram num indvs", len(sriram_results), "frac nea", avg_frac_nea(sriram_results))
+    print("ibdmix num indvs", len(ibdmix_results), "frac nea", avg_frac_nea(ibdmix_results))
+
+    # TODO call on all pairs!
 
 if __name__ == "__main__":
     for chr_int in range(1,23):
         chr = str(chr_int)
         egrm_pred_filename = egrm_pred_path + POP + "_chr" + chr + ".pred"
         sriram_pred_filename = sriram_pred_path + "chr-" + chr + ".thresh-90.length-0.00.haplotypes.gz"
-        one_chrom(str(chr_int), egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename)
+        one_chrom(str(chr_int), egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename, ibdmix_pred_filename)
