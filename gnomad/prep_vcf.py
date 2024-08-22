@@ -27,7 +27,7 @@ def main():
 
     # go through each population
     for pop_file in pop_file_lst:
-        if "_yri.txt" in pop_file:
+        if "_yri.txt" in pop_file and "ceu" in pop_file: # TODO just CEU for now
             pop = pop_file[:3].upper()
             pop_file = "gnomad_subpops/" + pop_file
 
@@ -43,16 +43,16 @@ def main():
                 in_file = IN_FOLDER + "/hgdp1kgp_chr" + chr + ".filtered.SNV_INDEL.phased.shapeit5.bcf"
                 out_file = out_folder + "/" + pop + "_chr" + chr + ".vcf.gz"
                 
-                view_norm = "bcftools view -S " + pop_file + " --force-samples --min-ac 1:minor -m2 -M2 -v snps -Ou " + in_file + " | bcftools norm -d snps -Oz -o " + out_file
+                view_norm = "bcftools view -S " + pop_file + " --min-ac 1:minor -m2 -M2 -v snps -Ou " + in_file + " | bcftools norm -d snps -Oz -o " + out_file
                 print(view_norm)
-                process = Popen(view_norm, shell=True, stdout=PIPE)
-                process.communicate()
+                #process = Popen(view_norm, shell=True, stdout=PIPE)
+                #process.communicate()
 
                 # index
                 index = "bcftools index " + out_folder + "/" + pop + "_chr" + chr + ".vcf.gz"
                 print(index)
-                process = Popen(index, shell=True, stdout=PIPE)
-                process.communicate()
+                #process = Popen(index, shell=True, stdout=PIPE)
+                #process.communicate()
 
 if __name__ == "__main__":
     main()

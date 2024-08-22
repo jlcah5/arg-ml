@@ -13,7 +13,6 @@ from subprocess import Popen, PIPE
 import sys
 
 # our imports
-#sys.path.insert(1, "../../pg-gan")
 import mask
 
 ################################################################################
@@ -26,8 +25,16 @@ BED_FILE = sys.argv[2]
 RECO_FOLDER = sys.argv[3] + "/" + POP
 OUT_FOLDER = sys.argv[4] + "/" + POP
 START_CHR = 1
+END_CHR = 22 # inclusive
+
+# start or end part way through
 if len(sys.argv) == 6:
-    START_CHR = int(sys.argv[5]) # start part way through
+    START_CHR = int(sys.argv[5])
+elif len(sys.argv) == 7:
+    START_CHR = int(sys.argv[5])
+    END_CHR = int(sys.argv[6])
+
+# set up directory
 mkdir = Popen("mkdir " + OUT_FOLDER, shell=True, stdout=PIPE)
 mkdir.communicate()
 
@@ -61,7 +68,7 @@ def main():
     kept = 0
     total = 0
 
-    for chr_int in range(START_CHR,23):
+    for chr_int in range(START_CHR,END_CHR+1):
         CHR = str(chr_int)
         chrom_length = chrom_dict[CHR]
 

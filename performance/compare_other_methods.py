@@ -28,7 +28,7 @@ def read_chrom_lengths():
 
 CHROM_DICT = read_chrom_lengths()
 
-THRESH = 0.996 # TODO increase to match!
+THRESH = 0.998
 RAND_TRIALS = 1000
 SIG_THRESH = 0.05 # significance threshold (p-value)
 
@@ -382,10 +382,14 @@ def pairwise_overlap(resultsA, resultsB):
     """from two methods, each with a results dictionary (key: indv ID, value: indv)
     compute their overlap. Right now this is per chrom"""
 
-    # TODO stopped here (think about how to make more symmetric with denom?)
-    overlapping_ids = set(resultsA.keys()).intersection(set(sriram_results.keys()))
+    overlapping_ids = set(resultsA.keys()).intersection(set(resultsB.keys()))
     num_indv = len(overlapping_ids)
     print("num overlapping", num_indv)
+
+    for id in resultsA:
+        if id not in resultsB:
+            print("in our data but not 1000g?", id)
+    input('enter')
 
     #chr_len = CHROM_DICT[CHR]
 
@@ -397,7 +401,7 @@ def pairwise_overlap(resultsA, resultsB):
     for id in overlapping_ids:
         #print("\nstarting hap", id)
         indv_egrm = resultsA[id]
-        indv_sriram = sriram_results[id]
+        indv_sriram = resultsB[id]
         #print("egrm", indv_egrm)
         #print("sriram", indv_sriram)
         indv_overlap = calc_overlap(indv_egrm.region_lst, indv_sriram.region_lst)
@@ -420,8 +424,8 @@ def pairwise_overlap(resultsA, resultsB):
 
     avg_overlap = avg_overlap/num_indv
     print("avg indv overlap fraction", avg_overlap)
-    shuffle_pvalue = random_shuffling_trial(resultsA, sriram_results, overlapping_ids)
-    print("shuffle indv pvalue", shuffle_pvalue)
+    #shuffle_pvalue = random_shuffling_trial(resultsA, resultsB, overlapping_ids)
+    #print("shuffle indv pvalue", shuffle_pvalue)
     #print("frac sig p-values", frac_pvalue_sig/num_indv)
 
 def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename, ibdmix_pred_filename):
@@ -435,7 +439,10 @@ def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, s
     print("sriram num indvs", len(sriram_results), "frac nea", avg_frac_nea(sriram_results))
     print("ibdmix num indvs", len(ibdmix_results), "frac nea", avg_frac_nea(ibdmix_results))
 
-    # TODO call on all pairs!
+    # compare all pairs! TODO make matrix
+    pairwise_overlap(egrm_results, sriram_results)
+    pairwise_overlap(egrm_results, ibdmix_results)
+    pairwise_overlap(ibdmix_results, sriram_results)
 
 if __name__ == "__main__":
     for chr_int in range(1,23):

@@ -118,7 +118,12 @@ def pred_one_chrom(chrom):
     with torch.no_grad():
         for i, inputs in enumerate(testloader):
             if model_name == "transformer":
+                # ensure we have equal numbers of target and outgroup
+                assert inputs.shape[1] == NUM_HAPS*2
+                assert inputs.shape[2] == NUM_HAPS*2
                 inputs = inputs[:,:NUM_HAPS,:NUM_HAPS].to(device)
+                print('here!!!')
+                input('enter')
             else: 
                 inputs = inputs[:,:,:NUM_HAPS,:NUM_HAPS].to(device)
             #print(inputs.shape)
@@ -130,6 +135,7 @@ def pred_one_chrom(chrom):
             y_pred=torch.cat((y_pred, pred_y))
             y_out=torch.cat((y_out, torch.sigmoid(outputs)))
             #test_y_list.append(labels.to("cpu"))
+            input('enter')
     #y_test = np.concatenate(test_y_list, axis=0)
     y_pred_t = y_pred.flatten().numpy()
     y_out_t = y_out.flatten().numpy()
@@ -139,10 +145,10 @@ def pred_one_chrom(chrom):
     sns.displot(y_out_t)#, x="prob introgression")
     plt.xlabel("prob introgression")
     plt.title(model_name + ", " + model_type + ", " + real_pop[-4:-1])
-    plt.savefig(out_prefix + "_chr" + str(chrom) + ".pdf", bbox_inches="tight")
+    #plt.savefig(out_prefix + "_chr" + str(chrom) + ".pdf", bbox_inches="tight")
 
-    # save to a file
-    pred_file = open(out_prefix + "_chr" + str(chrom) + ".pred", 'w')
+    # save to a file TODO put back and above
+    '''pred_file = open(out_prefix + "_chr" + str(chrom) + ".pred", 'w')
     file_lst = dataset.file_lst
     assert len(file_lst)*NUM_HAPS == len(y_out_t)
 
@@ -155,7 +161,7 @@ def pred_one_chrom(chrom):
             pred_file.write(line + "\n")
             i += 1
 
-    pred_file.close()
+    pred_file.close()'''
 
 if __name__ == "__main__":
     if CHR is not None:

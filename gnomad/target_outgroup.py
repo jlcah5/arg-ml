@@ -7,6 +7,7 @@ Date: 6/19/24
 
 # python imports
 import os
+import sys
 
 ################################################################################
 # GLOBALS
@@ -14,7 +15,9 @@ import os
 
 HEADER = "gnomad_subpops/header.txt"
 OUTGROUP = "gnomad_subpops/yri.txt"
+SRIRAM_IDS = sys.argv[1]
 N = 56 # num of individuals in the target, num individuals in the outgroup
+#TODO stopped here: make ids that match sriram and overlap slightly
 
 ################################################################################
 # MAIN
@@ -35,7 +38,15 @@ def get_yri(header_str):
     # close files
     yri_file.close()
     return yri_str  
-            
+
+def read_sriram_ids(sriram_filename):
+    sriram_file = open(sriram_filename,'r')
+    sriram_ids = set()
+    for line in sriram_file:
+        tokens = line.split()
+        sriram_ids.add(tokens[0])
+    return list(sriram_ids)
+
 def main():
 
     pop_file_lst = os.listdir("gnomad_subpops")
@@ -51,6 +62,13 @@ def main():
         pop = pop_file[:3].upper()
         if pop != "YRI" and pop != "HEA": # outgroup or header.txt
             old_pop_filename = "gnomad_subpops/" + pop_file
+            
+            sriram_ids = read_sriram_ids(sriram_filename) # TODO stopped here!
+            target_ids1 = sriram_ids[:N]
+            target_ids2 = sriram_ids[-N:]
+            for id in sriram_ids:
+                # TODO assert it is in our ids
+            
             new_pop_filename = "gnomad_subpops/" + pop_file[:-4] + "_yri.txt"
             print(old_pop_filename, new_pop_filename)
 
