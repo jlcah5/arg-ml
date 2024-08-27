@@ -20,10 +20,10 @@ import mask
 ################################################################################
 
 IN_FOLDER = sys.argv[1]
-POP = IN_FOLDER[-3:]
+POP = IN_FOLDER[-4:-1] # CEU2
 BED_FILE = sys.argv[2]
 RECO_FOLDER = sys.argv[3] + "/" + POP
-OUT_FOLDER = sys.argv[4] + "/" + POP
+OUT_FOLDER = sys.argv[4] + "/" + POP + "2"
 START_CHR = 1
 END_CHR = 22 # inclusive
 
