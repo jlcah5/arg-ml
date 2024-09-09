@@ -40,7 +40,7 @@ egrm_id_filename = ID_PATH + POP.lower() + "_yri.txt"
 sriram_pred_path = COMPARE_PATH + "sriram/summaries.release/" + POP + ".hapmap/summaries/haplotypes/"
 sriram_id_filename = COMPARE_PATH + "sriram/summaries.release/ids/" + POP + ".ids"
 ibdmix_pred_filename = COMPARE_PATH + "IBDmix/Neanderthal_sequence_in_1000genome.50kb_noheader_chr_hg38.txt"
-
+skov_pred_path = COMPARE_PATH + "skovHMM/CEU_hg38.txt"
 
 ################################################################################
 # CLASSES
@@ -344,6 +344,32 @@ def read_ibdmix(target_chrom, pred_filename, target_pop):
     pred_file.close()
     return ibdmix_results
 
+def read_skov(target_chrom, pred_filename, target_pop):
+    pred_file = open(pred_filename,'r')
+    header = pred_file.readline()
+    skov_results = {}
+    assert target_pop == "CEU" # we only have CEU
+
+    for line in pred_file:
+        tokens = line.split()
+        chrom = tokens[1][3:]
+        if chrom == target_chrom:
+            id = tokens[0].split(".")[0]
+            start = int(tokens[2])
+            end = int(tokens[3])
+            prob = float(tokens[4])
+            # TODO tokens[5] is none, Nea, Den... should we drop none or have threshold 0.8?
+
+            region = Region(chrom, start, end, prob)
+
+            if id not in skov_results:
+                skov_results[id] = Individual(target_chrom)
+            
+            skov_results[id].add_region(region)
+    
+    pred_file.close()
+    return skov_results
+
 def calc_overlap(regions1, regions2):
     # total overlap between all regions of 1 and 2
     total_overlap = 0
@@ -386,10 +412,10 @@ def pairwise_overlap(resultsA, resultsB):
     num_indv = len(overlapping_ids)
     print("num overlapping", num_indv)
 
-    for id in resultsA:
-        if id not in resultsB:
-            print("in our data but not 1000g?", id)
-    input('enter')
+    #for id in resultsA:
+    #    if id not in resultsB:
+    #        print("in our data but not 1000g?", id)
+    #input('enter')
 
     #chr_len = CHROM_DICT[CHR]
 
