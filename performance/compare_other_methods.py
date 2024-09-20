@@ -1,9 +1,11 @@
 
 # python imports
 import gzip
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 from scipy.stats import norm
+import seaborn as sns
 from subprocess import Popen, PIPE
 import sys
 
@@ -28,7 +30,7 @@ def read_chrom_lengths():
 
 CHROM_DICT = read_chrom_lengths()
 
-THRESH = 0.998
+THRESH = 0.997
 RAND_TRIALS = 1000
 SIG_THRESH = 0.05 # significance threshold (p-value)
 
@@ -40,7 +42,7 @@ egrm_id_filename = ID_PATH + POP.lower() + "_yri.txt"
 sriram_pred_path = COMPARE_PATH + "sriram/summaries.release/" + POP + ".hapmap/summaries/haplotypes/"
 sriram_id_filename = COMPARE_PATH + "sriram/summaries.release/ids/" + POP + ".ids"
 ibdmix_pred_filename = COMPARE_PATH + "IBDmix/Neanderthal_sequence_in_1000genome.50kb_noheader_chr_hg38.txt"
-skov_pred_path = COMPARE_PATH + "skovHMM/CEU_hg38.txt"
+skov_pred_filename = COMPARE_PATH + "skovHMM/CEU_hg38.txt"
 
 ################################################################################
 # CLASSES
@@ -358,14 +360,13 @@ def read_skov(target_chrom, pred_filename, target_pop):
             start = int(tokens[2])
             end = int(tokens[3])
             prob = float(tokens[4])
-            # TODO tokens[5] is none, Nea, Den... should we drop none or have threshold 0.8?
+            if prob >= 0.8: # their recommended threshold
+                region = Region(chrom, start, end, prob)
 
-            region = Region(chrom, start, end, prob)
-
-            if id not in skov_results:
-                skov_results[id] = Individual(target_chrom)
-            
-            skov_results[id].add_region(region)
+                if id not in skov_results:
+                    skov_results[id] = Individual(target_chrom)
+                
+                skov_results[id].add_region(region)
     
     pred_file.close()
     return skov_results
@@ -453,22 +454,36 @@ def pairwise_overlap(resultsA, resultsB):
     #shuffle_pvalue = random_shuffling_trial(resultsA, resultsB, overlapping_ids)
     #print("shuffle indv pvalue", shuffle_pvalue)
     #print("frac sig p-values", frac_pvalue_sig/num_indv)
+    return avg_overlap
 
 def one_chrom(CHR, egrm_pred_filename, egrm_id_filename, sriram_pred_filename, sriram_id_filename, ibdmix_pred_filename):
     # dictionaries of individual (key) : regions (value)
     egrm_results = read_egrm(CHR, egrm_pred_filename, egrm_id_filename)
     sriram_results = read_sriram(CHR, sriram_pred_filename, sriram_id_filename)
     ibdmix_results = read_ibdmix(CHR, ibdmix_pred_filename, POP)
+    skov_results = read_skov(CHR, skov_pred_filename, POP)
+    names = ["EGRM", "Sriram", "IBDmix", "Skov_HMM"]
+    all_results = [egrm_results, sriram_results, ibdmix_results, skov_results]
 
     print("\nstarting chrom", chr)
     print("egrm num indvs", len(egrm_results), "frac nea", avg_frac_nea(egrm_results))
     print("sriram num indvs", len(sriram_results), "frac nea", avg_frac_nea(sriram_results))
     print("ibdmix num indvs", len(ibdmix_results), "frac nea", avg_frac_nea(ibdmix_results))
+    print("skov num indvs", len(skov_results), "frac nea", avg_frac_nea(skov_results))
 
-    # compare all pairs! TODO make matrix
-    pairwise_overlap(egrm_results, sriram_results)
-    pairwise_overlap(egrm_results, ibdmix_results)
-    pairwise_overlap(ibdmix_results, sriram_results)
+    # compare all pairs
+    num_methods = len(all_results)
+    pairwise_overlaps = np.zeros((num_methods, num_methods))
+    for i in range(num_methods):
+        for j in range(num_methods):
+            print(names[i], names[j])
+            avg_overlap = pairwise_overlap(all_results[i], all_results[j])
+            pairwise_overlaps[i][j] = avg_overlap
+
+    sns.heatmap(pairwise_overlaps, annot=True, xticklabels=names, yticklabels=names, cmap="rocket_r", vmin=0, vmax=1)
+    plt.title(POP + " chr" + CHR + " method comparison")
+    plt.savefig(COMPARE_PATH + "output/" + POP + "/" + POP + "_chr" + CHR + "_overlaps.pdf")
+    plt.clf()
 
 if __name__ == "__main__":
     for chr_int in range(1,23):
