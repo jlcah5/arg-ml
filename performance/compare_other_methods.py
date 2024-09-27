@@ -9,6 +9,10 @@ import seaborn as sns
 from subprocess import Popen, PIPE
 import sys
 
+# our imports
+sys.path.append('../gnomad/')
+import mask
+
 ################################################################################
 # GLOBALS
 ################################################################################
@@ -19,6 +23,7 @@ PRED_PATH = sys.argv[2] #"/homes/smathieson/Documents/arg-ml/output/"
 ID_PATH = sys.argv[3] #"/homes/smathieson/GIT/arg-ml/gnomad/gnomad_subpops/"
 COMPARE_PATH = sys.argv[4] #/homes/smathieson/Documents/arg-ml/
 POP = sys.argv[5]
+BED_FILE = "/homes/smathieson/Documents/arg-ml/20160622.allChr.mask.bed"
 
 def read_chrom_lengths():
     arr = np.loadtxt("../gnomad/hg38_chrom_lengths.tsv", dtype='int', delimiter="\t", skiprows=1)
@@ -29,6 +34,7 @@ def read_chrom_lengths():
     return chrom_dict
 
 CHROM_DICT = read_chrom_lengths()
+mask_dict = mask.read_mask(BED_FILE)
 
 THRESH = 0.997
 RAND_TRIALS = 1000
@@ -309,7 +315,8 @@ def read_sriram(target_chrom, pred_filename, id_filename):
             if id not in sriram_results:
                 sriram_results[id] = Individual(target_chrom)
             
-            sriram_results[id].add_region(region)
+            if mask.Region(chrom, start, end).inside_mask(mask_dict):
+                sriram_results[id].add_region(region)
     
     pred_file.close()
 
@@ -341,7 +348,8 @@ def read_ibdmix(target_chrom, pred_filename, target_pop):
             if id not in ibdmix_results:
                 ibdmix_results[id] = Individual(target_chrom)
             
-            ibdmix_results[id].add_region(region)
+            if mask.Region(chrom, start, end).inside_mask(mask_dict):
+                ibdmix_results[id].add_region(region)
 
     pred_file.close()
     return ibdmix_results
@@ -366,7 +374,8 @@ def read_skov(target_chrom, pred_filename, target_pop):
                 if id not in skov_results:
                     skov_results[id] = Individual(target_chrom)
                 
-                skov_results[id].add_region(region)
+                if mask.Region(chrom, start, end).inside_mask(mask_dict):
+                    skov_results[id].add_region(region)
     
     pred_file.close()
     return skov_results
