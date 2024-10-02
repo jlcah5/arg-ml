@@ -312,10 +312,11 @@ def read_sriram(target_chrom, pred_filename, id_filename):
 
             region = Region(chrom, start, end, prob)
 
-            if id not in sriram_results:
-                sriram_results[id] = Individual(target_chrom)
-            
             if mask.Region(chrom, start, end).inside_mask(mask_dict):
+
+                if id not in sriram_results:
+                    sriram_results[id] = Individual(target_chrom)
+            
                 sriram_results[id].add_region(region)
     
     pred_file.close()
@@ -345,10 +346,11 @@ def read_ibdmix(target_chrom, pred_filename, target_pop):
 
             region = Region(chrom, start, end, prob)
 
-            if id not in ibdmix_results:
-                ibdmix_results[id] = Individual(target_chrom)
-            
             if mask.Region(chrom, start, end).inside_mask(mask_dict):
+
+                if id not in ibdmix_results:
+                    ibdmix_results[id] = Individual(target_chrom)
+            
                 ibdmix_results[id].add_region(region)
 
     pred_file.close()
@@ -371,10 +373,11 @@ def read_skov(target_chrom, pred_filename, target_pop):
             if prob >= 0.8: # their recommended threshold
                 region = Region(chrom, start, end, prob)
 
-                if id not in skov_results:
-                    skov_results[id] = Individual(target_chrom)
-                
                 if mask.Region(chrom, start, end).inside_mask(mask_dict):
+
+                    if id not in skov_results:
+                        skov_results[id] = Individual(target_chrom)
+                
                     skov_results[id].add_region(region)
     
     pred_file.close()

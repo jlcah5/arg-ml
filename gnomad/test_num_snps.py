@@ -116,6 +116,8 @@ def plot_sim_real(sim_snps, real_snps):
     sns.distplot(sim_snps, label="sim")
     sns.distplot(real_snps, label="real")
     plt.legend()
+    plt.xlabel("num SNPs")
+    plt.title("SNPs per 50kb region, CEU")
     plt.savefig("test_num_snps.pdf")
 
 if __name__ == "__main__":
