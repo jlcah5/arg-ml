@@ -14,6 +14,26 @@ sys.path.append('../gnomad/')
 import mask
 from region_classes import Individual, Region
 
+################################################################################
+# GLOBALS
+################################################################################
+
+COMPARE_PATH = "/homes/smathieson/Documents/arg-ml/"
+POP = "CEU"
+BED_FILE = "/homes/smathieson/Documents/arg-ml/20160622.allChr.mask.bed"
+CHAIN_FILE = "/homes/smathieson/Programs/hg19ToHg38.over.chain.gz"
+
+# accessibility mask
+mask_dict = mask.read_mask(BED_FILE)
+
+# files for sriram method
+sriram_pred_path = COMPARE_PATH + "sriram/summaries.release/" + POP + ".hapmap/summaries/haplotypes/"
+sriram_id_filename = COMPARE_PATH + "sriram/summaries.release/ids/" + POP + ".ids"
+
+################################################################################
+# HELPERS
+################################################################################
+
 def liftOver(region_lst):
     # convert from hg19 to hg38 using cumbersome procedure..
     
@@ -91,24 +111,16 @@ def read_sriram(target_chrom, pred_filename, id_filename, mask_dict, CHAIN_FILE)
 # MAIN
 ################################################################################
 
+def sriram_one_chrom(CHR):
+    sriram_pred_filename = sriram_pred_path + "chr-" + CHR + ".thresh-90.length-0.00.haplotypes.gz"
+    sriram_results = read_sriram(CHR, sriram_pred_filename, sriram_id_filename, mask_dict, CHAIN_FILE)
+    return sriram_results
+
 if __name__ == "__main__":
-    # test sriram
-    COMPARE_PATH = "/homes/smathieson/Documents/arg-ml/"
-    POP = "CEU"
-    BED_FILE = "/homes/smathieson/Documents/arg-ml/20160622.allChr.mask.bed"
-    CHAIN_FILE = "/homes/smathieson/Programs/hg19ToHg38.over.chain.gz"
-
-    # accessibility mask
-    mask_dict = mask.read_mask(BED_FILE)
-
-    # files for sriram method
-    sriram_pred_path = COMPARE_PATH + "sriram/summaries.release/" + POP + ".hapmap/summaries/haplotypes/"
-    sriram_id_filename = COMPARE_PATH + "sriram/summaries.release/ids/" + POP + ".ids"
-
+    
     for chr_int in range(1,23):
         CHR = str(chr_int)
-        sriram_pred_filename = sriram_pred_path + "chr-" + CHR + ".thresh-90.length-0.00.haplotypes.gz"
-        sriram_results = read_sriram(CHR, sriram_pred_filename, sriram_id_filename, mask_dict, CHAIN_FILE)
+        sriram_results = sriram_one_chrom(CHR)
 
 
         

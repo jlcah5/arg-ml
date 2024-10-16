@@ -7,7 +7,23 @@ Date: 10/16/24
 # our imports
 from region_classes import Individual, Region
 
+################################################################################
+# GLOBALS
+################################################################################
+
+PRED_PATH = "/homes/smathieson/Documents/arg-ml/output/"
+ID_PATH = "/homes/smathieson/GIT/arg-ml/gnomad/gnomad_subpops/"
+POP = "CEU"
+
+# our pred file and ID file
+egrm_pred_path = PRED_PATH + POP + "/"
+egrm_id_filename = ID_PATH + POP.lower() + "_yri.txt"
+
 THRESH = 0.997
+
+################################################################################
+# HELPERS
+################################################################################
 
 def read_egrm(target_chrom, pred_filename, id_filename): # don't need mask
     # first is target, second is outgroup
@@ -49,17 +65,14 @@ def read_egrm(target_chrom, pred_filename, id_filename): # don't need mask
 # MAIN
 ################################################################################
 
-if __name__ == "__main__":
-    # test egrm
-    PRED_PATH = "/homes/smathieson/Documents/arg-ml/output/"
-    ID_PATH = "/homes/smathieson/GIT/arg-ml/gnomad/gnomad_subpops/"
-    POP = "CEU"
+def egrm_one_chrom(CHR):
+    egrm_pred_filename = egrm_pred_path + POP + "_chr" + CHR + ".pred"
+    egrm_results = read_egrm(CHR, egrm_pred_filename, egrm_id_filename)
+    return egrm_results
 
-    # our pred file and ID file
-    egrm_pred_path = PRED_PATH + POP + "/"
-    egrm_id_filename = ID_PATH + POP.lower() + "_yri.txt"
+if __name__ == "__main__":
 
     for chr_int in range(1,23):
         CHR = str(chr_int)
-        egrm_pred_filename = egrm_pred_path + POP + "_chr" + CHR + ".pred"
-        egrm_results = read_egrm(CHR, egrm_pred_filename, egrm_id_filename)
+        egrm_results = egrm_one_chrom(CHR)
+        

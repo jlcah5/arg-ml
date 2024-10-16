@@ -57,7 +57,7 @@ class Individual:
                 curr_idx = [i+1]
         merged_idx_lst.append(curr_idx)
 
-        print("merged", len(merged_idx_lst), len(self.region_lst))
+        #print("merged", len(merged_idx_lst), len(self.region_lst))
         assert merged_idx_lst[-1][-1] + 1 == len(self.region_lst)
 
         # use index groups to redo regions, averaging preds
@@ -79,8 +79,8 @@ class Individual:
     
     def collapse_haps(self):
         # if homozygous, collapse
-        print("starting to collapse!")
-        print("num regions", len(self.region_lst))
+        #print("starting to collapse!")
+        #print("num regions", len(self.region_lst))
         num_regions = len(self.region_lst)
 
         # find overlapping indices
@@ -91,7 +91,7 @@ class Individual:
                 regionA = self.region_lst[i]
                 regionB = self.region_lst[j]
                 if regionA.overlap(regionB) > 0:
-                    print("self overlap!!", i, j, regionA, regionB)
+                    #print("self overlap!!", i, j, regionA, regionB)
                     all_indices.add(i)
                     all_indices.add(j)
                     found = False
@@ -102,14 +102,14 @@ class Individual:
                             found = True
                     if not found:
                         overlapping_indices.append(set([i,j]))
-        print(overlapping_indices)
+        #print(overlapping_indices)
 
         merged_regions = []
         for group in overlapping_indices:
             # make new region with min start and max end
             start = min([self.region_lst[i].start for i in group])
             end = max([self.region_lst[i].end for i in group])
-            chrom = self.region_lst[list(group)[0]] # should all be the same
+            chrom = self.region_lst[list(group)[0]].chrom # should all be the same
             prob = np.mean([self.region_lst[i].prob for i in group]) # avg
             new_region = Region(chrom, start, end, prob)
             merged_regions.append(new_region)
@@ -120,7 +120,7 @@ class Individual:
                 merged_regions.append(self.region_lst[i])
 
         self.region_lst = merged_regions
-        print("after", len(self.region_lst))
+        #print("after", len(self.region_lst))
 
     def frac_nea(self):
         total = CHROM_DICT[self.chrom]
@@ -139,6 +139,8 @@ class Region:
         self.prob = prob # prob introgression
 
     def overlap(self, other):
+        if self.chrom != other.chrom:
+            print(self.chrom, other.chrom)
         assert self.chrom == other.chrom
         a1 = self.start
         a2 = self.end
