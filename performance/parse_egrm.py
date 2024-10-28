@@ -5,7 +5,8 @@ Date: 10/16/24
 """
 
 # our imports
-from region_classes import Individual, Region
+import comparison_helpers
+from region_classes import Individual, Region, read_chrom_lengths
 
 ################################################################################
 # GLOBALS
@@ -71,8 +72,19 @@ def egrm_one_chrom(CHR):
     return egrm_results
 
 if __name__ == "__main__":
+    CHROM_DICT = read_chrom_lengths()
 
     for chr_int in range(1,23):
         CHR = str(chr_int)
-        egrm_results = egrm_one_chrom(CHR)
+        print("\n---------- starting CHR",CHR,"----------\n")
+        results = egrm_one_chrom(CHR)
+
+        # optionally compare to nea/san
+        comparison_helpers.compare_outgroup_avg(results, "NEA")
+        comparison_helpers.compare_outgroup_avg(results, "SAN")
+
+        print("random control")
+        random_results = comparison_helpers.make_random_regions(results, CHROM_DICT[CHR])
+        comparison_helpers.compare_outgroup_avg(random_results, "NEA")
+        comparison_helpers.compare_outgroup_avg(random_results, "SAN")
         
